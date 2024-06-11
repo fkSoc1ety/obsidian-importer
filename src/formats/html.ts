@@ -69,8 +69,9 @@ export class HtmlImporter extends FormatImporter {
 			return;
 		}
 
-		const folder = await this.getOutputFolder();
-		if (!folder) {
+		const rootfolder = await this.getOutputFolder();
+		
+		if (!rootfolder) {
 			new Notice('Please select a location to export to.');
 			return;
 		}
@@ -83,6 +84,8 @@ export class HtmlImporter extends FormatImporter {
 			ctx.reportProgress(i, files.length);
 
 			const file = files[i];
+			const folder = await this.createFolders( ImportContext, rootfolder, file )
+
 			const tFile = await this.processFile(ctx, folder, file);
 			if (tFile) {
 				fileLookup.set(
@@ -310,6 +313,7 @@ export class HtmlImporter extends FormatImporter {
 			}
 		}
 
+
 		let attachmentFolder = await this.createFolders(normalizePath(folder.path + '/Attachments'));
 
 		// @ts-ignore
@@ -338,7 +342,25 @@ export class HtmlImporter extends FormatImporter {
 		const { height, width } = size;
 		return width >= this.minimumImageSize && height >= this.minimumImageSize;
 	}
+
+
+	async createFolders(ctx: ImportContext, folder: TFolder, file: PickedFile) {
+		let path = folder.fullPath; // Get the full path of the current folder
+		const parentFolders = path.split('/').filter(Boolean); // Split the path into an array of folder names
+		parentFolders.pop(); // Remove the last element, which is the file name
+		parentFolders.pop(); // drop the inner structure of the main folder
+		const parentPath = normalizePath(`${folder.fullPath}/${parentFolders.join('/')}`); // Join the parent folders with '/' and add them to the current folder path
+		
+		//const newFolder = await this.vault.create(path, { parents: true });
+		await this.createFolders(parentPath);
+
+	}
+
+
 }
+
+
+
 
 function fixElementRef(element: Element, attribute: string) {
 	const value = element.getAttribute(attribute);
